@@ -1,0 +1,8 @@
+node_modules/
+dist/
+src/local.settings.json
+src/.azurefunctions/
+*.tfvars
+.terraform/
+*.tfstate
+*.tfstate.backup

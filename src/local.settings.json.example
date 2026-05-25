@@ -1,0 +1,17 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "SOCKET_WEBHOOK_SECRET": "whsec_REPLACE_ME",
+    "MAIL_SENDER_UPN": "socket-alerts@c3.ai",
+    "MAIL_TO_ADDRESSES": "dependency-security@c3.ai",
+    "SOCKET_ORG_SLUG": "",
+    "MIN_SEVERITY": "low",
+    "INCLUDE_CLEARED": "true",
+    "REPO_ALLOWLIST": "",
+    "IDEMPOTENCY_TABLE_NAME": "SocketWebhookEvents",
+    "SIGNATURE_MAX_AGE_SECONDS": "300",
+    "MAIL_REPLY_TO": ""
+  }
+}

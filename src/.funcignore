@@ -1,0 +1,8 @@
+*.js.map
+*.js
+dist
+node_modules
+local.settings.json
+.vscode
+.azurefunctions
+coverage

@@ -1,0 +1,30 @@
+# Copy to terraform.tfvars and fill in. Do not commit terraform.tfvars if it contains secrets.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "eastus"
+environment     = "prod"
+project_name    = "socket-alert"
+
+# D6 — Front Door hostname (optional custom domain)
+custom_domain = "webhooks.c3.ai"
+webhook_path  = "/webhooks/socket"
+waf_mode      = "Detection" # Switch to Prevention after validation
+
+# D4 / D9 / D10
+mail_sender_upn   = "socket-alerts@c3.ai"
+mail_to_addresses = "dependency-security@c3.ai"
+socket_org_slug   = "" # Fill from D12
+min_severity      = "low"
+
+# APIM
+apim_sku             = "Standard_1"
+apim_publisher_name  = "C3 AI"
+apim_publisher_email = "platform@c3.ai"
+
+tags = {
+  project     = "socket-alert"
+  environment = "prod"
+  managed_by  = "terraform"
+  cost_center = ""
+  owner       = "platform-engineering"
+}
