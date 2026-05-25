@@ -5,15 +5,42 @@ location        = "eastus"
 environment     = "prod"
 project_name    = "socket-alert"
 
-# D6 — Front Door hostname (optional custom domain)
-custom_domain = "webhooks.c3.ai"
-webhook_path  = "/webhooks/socket"
-waf_mode      = "Detection" # Switch to Prevention after validation
+# ------------------------------------------------------------------------------
+# Step 3 — D6 public edge: hostname, DNS, TLS (gateway module)
+# Leave custom_domain empty to use default *.azurefd.net
+# ------------------------------------------------------------------------------
+custom_domain                  = "webhooks.c3.ai"
+webhook_path                   = "/webhooks/socket"
+waf_mode                       = "Detection" # Prevention after validation
+create_dns_record              = false        # true when dns zone is in Azure
+dns_zone_name                  = "c3.ai"
+dns_zone_resource_group_name   = "rg-dns-prod"
+manage_frontdoor_certificate   = false        # true after DNS validates
 
-# D4 / D9 / D10
+# ------------------------------------------------------------------------------
+# Step 4 — Function ingress (function module)
+# After first apply: terraform output apim_public_ip_addresses
+# Then set apim_egress_ips and re-apply
+# ------------------------------------------------------------------------------
+allow_azure_front_door                 = true
+apim_egress_ips                        = [] # e.g. ["20.x.x.x", "20.x.x.y"]
+function_additional_allowed_ip_cidrs   = []
+enable_function_deny_all_inbound       = true
+
+# ------------------------------------------------------------------------------
+# Step 5 — Socket.dev registration (outputs; manual dashboard step)
+# terraform output socket_webhook_url
+# terraform output socket_registration
+# ------------------------------------------------------------------------------
+socket_webhook_name = "c3ai-o365-alerts-prod"
+socket_event_types  = ["alert:created", "alert:updated", "alert:cleared"]
+socket_org_slug     = "" # D12 org slug for Function payload validation
+
+# ------------------------------------------------------------------------------
+# Function app settings (D4 / D9 / D10)
+# ------------------------------------------------------------------------------
 mail_sender_upn   = "socket-alerts@c3.ai"
 mail_to_addresses = "dependency-security@c3.ai"
-socket_org_slug   = "" # Fill from D12
 min_severity      = "low"
 
 # APIM

@@ -62,6 +62,72 @@ variable "waf_mode" {
   }
 }
 
+# --- Step 3: DNS + TLS (optional; pass into gateway module) ---
+
+variable "dns_zone_name" {
+  type        = string
+  default     = ""
+  description = "Existing DNS zone name, e.g. c3.ai. Required when create_dns_record=true."
+}
+
+variable "dns_zone_resource_group_name" {
+  type        = string
+  default     = ""
+  description = "Resource group of the DNS zone."
+}
+
+variable "create_dns_record" {
+  type        = bool
+  default     = false
+  description = "Create CNAME for custom_domain → Front Door endpoint (step 3)."
+}
+
+variable "manage_frontdoor_certificate" {
+  type        = bool
+  default     = false
+  description = "Use Front Door managed TLS cert for custom_domain (step 3)."
+}
+
+# --- Step 4: Function ingress (pass into function module) ---
+
+variable "allow_azure_front_door" {
+  type        = bool
+  default     = true
+  description = "Allow AzureFrontDoor.Backend on Function (step 4)."
+}
+
+variable "apim_egress_ips" {
+  type        = list(string)
+  default     = []
+  description = "APIM public egress IPs as /32 or plain IPs (step 4). After first apply, set from output apim_public_ip_addresses and re-apply."
+}
+
+variable "function_additional_allowed_ip_cidrs" {
+  type        = list(string)
+  default     = []
+  description = "Extra CIDRs allowed to call the Function directly (step 4)."
+}
+
+variable "enable_function_deny_all_inbound" {
+  type        = bool
+  default     = true
+  description = "Deny all inbound except allowed rules on Function (step 4)."
+}
+
+# --- Step 5: Socket.dev registration metadata (outputs + optional labels) ---
+
+variable "socket_webhook_name" {
+  type        = string
+  default     = "c3ai-o365-alerts-prod"
+  description = "Suggested webhook name in Socket dashboard (step 5; manual registration)."
+}
+
+variable "socket_event_types" {
+  type        = list(string)
+  default     = ["alert:created", "alert:updated", "alert:cleared"]
+  description = "Event types to enable when registering Socket webhook (step 5)."
+}
+
 # ------------------------------------------------------------------------------
 # Function App settings (from DECISIONS.md)
 # ------------------------------------------------------------------------------

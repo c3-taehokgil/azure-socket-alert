@@ -136,16 +136,18 @@ cp terraform.tfvars.example terraform.tfvars
 
 Key variables (from [DECISIONS.md](./DECISIONS.md)):
 
-| Variable | Example | Decision |
-|----------|---------|----------|
+| Variable | Example | Decision / step |
+|----------|---------|-----------------|
 | `subscription_id` | GUID | Target subscription |
-| `location` | `eastus` | Region |
-| `environment` | `prod` | D7 |
-| `project_name` | `socket-alert` | Naming prefix |
-| `custom_domain` | `webhooks.c3.ai` | D6 — optional |
-| `webhook_path` | `/webhooks/socket` | D6 |
+| `custom_domain` | `webhooks.c3.ai` | **Step 3** — empty = `*.azurefd.net` |
+| `webhook_path` | `/webhooks/socket` | **Step 3** — Socket URL path |
+| `create_dns_record` | `true` / `false` | **Step 3** — Azure DNS CNAME |
+| `apim_egress_ips` | `["20.x.x.x"]` | **Step 4** — after first apply |
+| `socket_webhook_name` | `c3ai-o365-alerts-prod` | **Step 5** — metadata output |
 | `mail_sender_upn` | `socket-alerts@c3.ai` | D4 |
 | `mail_to_addresses` | `dependency-security@c3.ai` | D9 |
+
+See [terraform.tfvars.example](../infra/terraform/terraform.tfvars.example) for the full list.
 
 ### Step 3 — Plan and apply
 

@@ -94,18 +94,34 @@ resource "azurerm_function_app_flex_consumption" "main" {
     application_insights_connection_string = azurerm_application_insights.main.connection_string
     application_insights_key               = azurerm_application_insights.main.instrumentation_key
 
-    ip_restriction {
-      name        = "AllowAzureFrontDoor"
-      service_tag = "AzureFrontDoor.Backend"
-      priority    = 100
-      action      = "Allow"
+    dynamic "ip_restriction" {
+      for_each = var.allow_azure_front_door ? [1] : []
+      content {
+        name        = "AllowAzureFrontDoor"
+        service_tag = "AzureFrontDoor.Backend"
+        priority    = 100
+        action      = "Allow"
+      }
     }
 
-    ip_restriction {
-      name       = "DenyAllOther"
-      ip_address = "0.0.0.0/0"
-      priority   = 200
-      action     = "Deny"
+    dynamic "ip_restriction" {
+      for_each = var.allowed_ip_cidrs
+      content {
+        name       = "Allow-${replace(ip_restriction.value, "/", "-")}"
+        ip_address = ip_restriction.value
+        priority   = 110 + ip_restriction.key
+        action     = "Allow"
+      }
+    }
+
+    dynamic "ip_restriction" {
+      for_each = var.enable_deny_all_inbound ? [1] : []
+      content {
+        name       = "DenyAllOther"
+        ip_address = "0.0.0.0/0"
+        priority   = 200
+        action     = "Deny"
+      }
     }
   }
 
