@@ -1,0 +1,42 @@
+{
+  "type": "alert:created",
+  "eventId": "SOCKET-DUMMY-CREATED-2751@1",
+  "schemaType": "alert@1",
+  "timestamp": "2025-11-19T20:53:53.148713Z",
+  "data": {
+    "organization": {
+      "slug": "c3-ai",
+      "name": "C3 AI"
+    },
+    "alert": {
+      "id": "alert-prototype-lodash-001",
+      "key": "npm:lodash@4.17.20",
+      "eventId": "SOCKET-DUMMY-CREATED-2751@1",
+      "title": "Prototype pollution in lodash",
+      "severity": "critical",
+      "category": "vulnerability",
+      "type": "cve",
+      "description": "Socket detected a known critical vulnerability in a direct dependency used in production code.",
+      "status": "open",
+      "createdAt": "2025-11-19T20:50:00.000000Z",
+      "updatedAt": "2025-11-19T20:50:00.000000Z",
+      "dashboardUrl": "https://socket.dev/dashboard/org/c3-ai/alerts/alert-prototype-lodash-001",
+      "vulnerability": {
+        "cveId": "CVE-2024-12345",
+        "cveTitle": "Prototype pollution in lodash",
+        "cvssScore": 9.8,
+        "isKev": true
+      },
+      "locations": [
+        {
+          "repo": "platform-services",
+          "repoSlug": "c3-ai/platform-services",
+          "manifestFile": "package.json",
+          "dependency": "npm:lodash@4.17.20",
+          "action": "error"
+        }
+      ],
+      "fix": "Upgrade lodash to 4.17.21 or later."
+    }
+  }
+}

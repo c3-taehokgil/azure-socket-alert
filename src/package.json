@@ -10,7 +10,8 @@
     "prestart": "npm run build",
     "start": "func start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:fixture": "node scripts/post-fixture.mjs"
   },
   "dependencies": {
     "@azure/data-tables": "^13.3.0",

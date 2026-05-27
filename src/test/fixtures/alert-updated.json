@@ -1,0 +1,41 @@
+{
+  "type": "alert:updated",
+  "eventId": "SOCKET-DUMMY-UPDATED-2751@5",
+  "schemaType": "alert@1",
+  "timestamp": "2025-11-19T21:15:22.000000Z",
+  "data": {
+    "organization": {
+      "slug": "c3-ai",
+      "name": "C3 AI"
+    },
+    "alert": {
+      "id": "alert-prototype-lodash-001",
+      "key": "npm:lodash@4.17.20",
+      "eventId": "SOCKET-DUMMY-UPDATED-2751@5",
+      "title": "Prototype pollution in lodash",
+      "severity": "high",
+      "category": "vulnerability",
+      "type": "cve",
+      "description": "Alert severity was updated after Socket re-scanned the dependency tree.",
+      "status": "open",
+      "createdAt": "2025-11-19T20:50:00.000000Z",
+      "updatedAt": "2025-11-19T21:15:22.000000Z",
+      "dashboardUrl": "https://socket.dev/dashboard/org/c3-ai/alerts/alert-prototype-lodash-001",
+      "vulnerability": {
+        "cveId": "CVE-2024-12345",
+        "cveTitle": "Prototype pollution in lodash",
+        "cvssScore": 8.1,
+        "isKev": true
+      },
+      "locations": [
+        {
+          "repo": "platform-services",
+          "repoSlug": "c3-ai/platform-services",
+          "manifestFile": "package-lock.json",
+          "dependency": "npm:lodash@4.17.20",
+          "action": "warn"
+        }
+      ]
+    }
+  }
+}
