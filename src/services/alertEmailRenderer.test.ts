@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { renderAlertEmail } from "./alertEmailRenderer";
-import { loadFixture, testAppConfig } from "../test/helpers/webhookTestHelpers";
+import { fixtureNotification, testAppConfig } from "../test/helpers/alertTestHelpers";
 
 describe("renderAlertEmail", () => {
   const config = testAppConfig();
 
   it("renders alert:created fixture with critical subject", () => {
-    const payload = loadFixture("alert-created");
-    const email = renderAlertEmail(payload, config);
+    const notification = fixtureNotification("alert-created");
+    const email = renderAlertEmail(notification, config);
 
     expect(email.subject).toContain("[Socket Critical]");
     expect(email.subject).toContain("Prototype pollution in lodash");
@@ -18,16 +18,16 @@ describe("renderAlertEmail", () => {
   });
 
   it("renders alert:updated fixture", () => {
-    const payload = loadFixture("alert-updated");
-    const email = renderAlertEmail(payload, config);
+    const notification = fixtureNotification("alert-updated");
+    const email = renderAlertEmail(notification, config);
 
     expect(email.subject).toContain("[Socket Updated/High]");
     expect(email.importance).toBe("high");
   });
 
   it("renders alert:cleared fixture with low importance", () => {
-    const payload = loadFixture("alert-cleared");
-    const email = renderAlertEmail(payload, config);
+    const notification = fixtureNotification("alert-cleared");
+    const email = renderAlertEmail(notification, config);
 
     expect(email.subject).toContain("[Socket Cleared]");
     expect(email.importance).toBe("low");

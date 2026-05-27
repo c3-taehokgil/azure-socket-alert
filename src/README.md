@@ -1,6 +1,6 @@
 # Socket Alert Azure Function
 
-Node.js 20 TypeScript Azure Functions v4 app — receives Socket.dev webhooks and sends alert emails via Microsoft Graph.
+Node.js 20 TypeScript Azure Functions v4 app — polls Socket.dev alerts via REST API every 15 minutes and sends alert emails via Microsoft Graph `sendMail`.
 
 ## Local development
 
@@ -8,20 +8,14 @@ Node.js 20 TypeScript Azure Functions v4 app — receives Socket.dev webhooks an
 cd src
 npm install
 cp local.settings.json.example local.settings.json
-# Edit local.settings.json with secrets and Azurite/storage connection string
+# Set SOCKET_API_TOKEN and SOCKET_ORG_SLUG
 
 npm run build
 npm test
 npm start
 ```
 
-POST to:
-
-```http
-POST http://localhost:7071/api/socket-webhook?code=<function-key>
-Content-Type: application/json
-x-webhook-signature: t=<unix>,s=<hmac>
-```
+The timer trigger runs on schedule when hosted in Azure. Locally, invoke `socketAlertPoller` from the Functions host or run unit tests.
 
 ## Deploy
 
@@ -34,62 +28,42 @@ npm run build
 func azure functionapp publish func-socket-alert-prod
 ```
 
-Or zip deploy via CI/CD pipeline.
-
 ## Configuration
 
 | Setting | Description |
 |---------|-------------|
-| `SOCKET_WEBHOOK_SECRET` | Socket `whsec_...` signing key |
+| `SOCKET_API_TOKEN` | Socket org token with `alerts:list` scope |
+| `SOCKET_ORG_SLUG` | Organization slug (required) |
+| `SOCKET_API_BASE_URL` | API base URL (default `https://api.socket.dev/v0`) |
 | `MAIL_SENDER_UPN` | Graph sender (`socket-alerts@c3.ai`) |
 | `MAIL_TO_ADDRESSES` | Recipients (`dependency-security@c3.ai`) |
-| `AzureWebJobsStorage` | Storage connection (Functions + idempotency table) |
+| `AzureWebJobsStorage` | Storage connection (Functions + state table) |
 | `MIN_SEVERITY` | `low`, `medium`, `high`, or `critical` |
 | `INCLUDE_CLEARED` | `true` / `false` |
 | `REPO_ALLOWLIST` | Optional comma-separated repo slugs |
-| `SOCKET_ORG_SLUG` | Optional org slug validation |
+| `STATE_TABLE_NAME` | Table for poll watermark + idempotency (default `SocketAlertState`) |
 
 Uses **Managed Identity** for Graph `Mail.Send` in Azure (no client secret).
 
-## Unit testing
+## Flow
 
-Tests use [Vitest](https://vitest.dev/) and run **without** starting the Functions host or calling Azure.
+1. Timer fires every 15 minutes (`socketAlertPoller`).
+2. `GET /orgs/{org_slug}/alerts` with Bearer token; paginates via `endCursor`.
+3. First run sets a poll watermark only (no emails) to avoid historical blast.
+4. Subsequent runs email new/changed alerts (`id` + `version`), then record state in Table Storage.
+5. `sendAlertEmail` calls Graph `/users/{sender}/sendMail`.
+
+## Unit testing
 
 ```bash
 cd src
-npm test              # run once
-npm run test:watch    # re-run on file changes
+npm test
 ```
 
-### Socket.dev dummy payloads
+Fixtures under `test/fixtures/` are Socket API alert objects from `alerts:list`.
 
-Fixtures under `test/fixtures/` mirror Socket’s `alert@1` shape (`SOCKET-DUMMY-*` event IDs):
-
-| Fixture | Event type |
-|---------|------------|
-| `alert-created.json` | `alert:created` |
-| `alert-updated.json` | `alert:updated` |
-| `alert-cleared.json` | `alert:cleared` |
-
-Helpers in `test/helpers/webhookTestHelpers.ts` sign payloads with `TEST_WEBHOOK_SECRET` (same value in `local.settings.json.example`).
-
-**Tests:** signature (all fixtures), email rendering, processor flow (mocked Graph + Table Storage) — 11 tests.
-
-### Local POST with a fixture
-
-```bash
-cp local.settings.json.example local.settings.json
-npm start
-# other terminal:
-npm run test:fixture -- alert-created
-CODE=<function-key> npm run test:fixture -- alert-created
-```
-
-See `test/fixtures/README.md`. Graph `sendMail` still requires Azure credentials locally unless mocked.
-
-### CI
+## CI
 
 ```bash
 cd src && npm ci && npm run build && npm test
 ```
-

@@ -8,16 +8,16 @@ const SEVERITY_RANK: Record<Severity, number> = {
 };
 
 export interface AppConfig {
-  webhookSecret: string;
+  socketApiToken: string;
+  socketOrgSlug: string;
+  socketApiBaseUrl: string;
   mailSenderUpn: string;
   mailToAddresses: string[];
   mailReplyTo?: string;
-  socketOrgSlug?: string;
   minSeverity: Severity;
   includeCleared: boolean;
   repoAllowlist: string[];
-  idempotencyTableName: string;
-  signatureMaxAgeSeconds: number;
+  stateTableName: string;
   storageConnectionString: string;
 }
 
@@ -53,20 +53,19 @@ export function loadConfig(): AppConfig {
     throw new Error("MAIL_TO_ADDRESSES must contain at least one address");
   }
 
-  const orgSlug = process.env.SOCKET_ORG_SLUG?.trim();
   const replyTo = process.env.MAIL_REPLY_TO?.trim();
 
   return {
-    webhookSecret: requireEnv("SOCKET_WEBHOOK_SECRET"),
+    socketApiToken: requireEnv("SOCKET_API_TOKEN"),
+    socketOrgSlug: requireEnv("SOCKET_ORG_SLUG"),
+    socketApiBaseUrl: (process.env.SOCKET_API_BASE_URL ?? "https://api.socket.dev/v0").replace(/\/$/, ""),
     mailSenderUpn: requireEnv("MAIL_SENDER_UPN"),
     mailToAddresses: mailTo,
     mailReplyTo: replyTo || undefined,
-    socketOrgSlug: orgSlug || undefined,
     minSeverity: parseSeverity(process.env.MIN_SEVERITY, "low"),
     includeCleared,
     repoAllowlist,
-    idempotencyTableName: process.env.IDEMPOTENCY_TABLE_NAME?.trim() || "SocketWebhookEvents",
-    signatureMaxAgeSeconds: Number(process.env.SIGNATURE_MAX_AGE_SECONDS ?? "300"),
+    stateTableName: process.env.STATE_TABLE_NAME?.trim() || "SocketAlertState",
     storageConnectionString: requireEnv("AzureWebJobsStorage"),
   };
 }

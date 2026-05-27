@@ -1,5 +1,5 @@
 import { AppConfig, titleCaseSeverity } from "../config";
-import { SocketAlert, SocketAlertEventType, SocketAlertWebhookPayload } from "../types/socketWebhook";
+import { AlertNotification, SocketAlert, SocketAlertEventType } from "../types/socketAlert";
 
 export interface RenderedEmail {
   subject: string;
@@ -19,13 +19,22 @@ function escapeHtml(value: string): string {
 
 function repoLabel(alert: SocketAlert, organizationSlug?: string): string {
   const location = alert.locations?.[0];
-  const repo = location?.repoSlug ?? location?.repo ?? organizationSlug ?? "unknown";
-  return repo;
+  return location?.repoSlug ?? location?.repo ?? organizationSlug ?? "unknown";
 }
 
 function dependencyLabel(alert: SocketAlert): string {
   const location = alert.locations?.[0];
   return location?.dependency ?? alert.type ?? "";
+}
+
+function fixLabel(alert: SocketAlert): string {
+  if (!alert.fix) {
+    return "";
+  }
+  if (typeof alert.fix === "string") {
+    return alert.fix;
+  }
+  return alert.fix.description ?? alert.fix.type ?? "";
 }
 
 function graphImportance(eventType: SocketAlertEventType, severity: string | undefined): "low" | "normal" | "high" {
@@ -58,12 +67,13 @@ function severityColor(severity: string | undefined, eventType: SocketAlertEvent
   }
 }
 
-function buildSubject(payload: SocketAlertWebhookPayload, alert: SocketAlert): string {
+function buildSubject(notification: AlertNotification): string {
+  const alert = notification.alert;
   const severity = titleCaseSeverity(alert.severity);
   const title = alert.title ?? "Socket alert";
-  const orgRepo = repoLabel(alert, payload.data?.organization?.slug);
+  const orgRepo = repoLabel(alert, notification.organizationSlug);
 
-  switch (payload.type) {
+  switch (notification.eventType) {
     case "alert:created":
       return `[Socket ${severity}] ${title} — ${orgRepo}`;
     case "alert:updated":
@@ -80,53 +90,49 @@ function buildDetailRows(alert: SocketAlert): string {
   const location = alert.locations?.[0];
 
   if (alert.description) {
-    rows.push(`<tr><td><strong>Description</strong></td><td>${escapeHtml(alert.description)}</td></tr>`);
+    rows.push(`<tr><th align="left">Description</th><td>${escapeHtml(alert.description)}</td></tr>`);
   }
-
-  if (alert.vulnerability?.cveId) {
-    const kev = alert.vulnerability.isKev ? "Yes" : "No";
-    const cvss = alert.vulnerability.cvssScore ?? "n/a";
-    rows.push(
-      `<tr><td><strong>CVE</strong></td><td>${escapeHtml(alert.vulnerability.cveId)} — CVSS ${cvss}, KEV: ${kev}</td></tr>`,
-    );
+  if (location?.manifestFile) {
+    rows.push(`<tr><th align="left">Manifest</th><td>${escapeHtml(location.manifestFile)}</td></tr>`);
   }
-
-  if (location?.manifestFile || location?.dependency) {
-    rows.push(
-      `<tr><td><strong>Location</strong></td><td>${escapeHtml(location.manifestFile ?? "")} → ${escapeHtml(location.dependency ?? "")}</td></tr>`,
-    );
-  }
-
   if (location?.action) {
-    rows.push(`<tr><td><strong>Policy action</strong></td><td>${escapeHtml(location.action)}</td></tr>`);
+    rows.push(`<tr><th align="left">Action</th><td>${escapeHtml(location.action)}</td></tr>`);
   }
-
-  if (alert.fix) {
-    rows.push(`<tr><td><strong>Fix</strong></td><td>${escapeHtml(alert.fix)}</td></tr>`);
+  if (alert.vulnerability?.cveId) {
+    rows.push(`<tr><th align="left">CVE</th><td>${escapeHtml(alert.vulnerability.cveId)}</td></tr>`);
+  }
+  if (alert.vulnerability?.cvssScore != null) {
+    rows.push(`<tr><th align="left">CVSS</th><td>${escapeHtml(String(alert.vulnerability.cvssScore))}</td></tr>`);
+  }
+  if (alert.vulnerability?.isKev) {
+    rows.push(`<tr><th align="left">KEV</th><td>Yes</td></tr>`);
+  }
+  const fix = fixLabel(alert);
+  if (fix) {
+    rows.push(`<tr><th align="left">Fix</th><td>${escapeHtml(fix)}</td></tr>`);
   }
 
   return rows.join("");
 }
 
-export function renderAlertEmail(payload: SocketAlertWebhookPayload, _config: AppConfig): RenderedEmail {
-  const alert = payload.data?.alert ?? {};
-  const eventId = payload.eventId ?? alert.eventId ?? alert.id ?? "unknown";
+export function renderAlertEmail(notification: AlertNotification, _config: AppConfig): RenderedEmail {
+  const alert = notification.alert;
   const severity = titleCaseSeverity(alert.severity);
   const category = alert.category ?? alert.type ?? "alert";
-  const repo = repoLabel(alert, payload.data?.organization?.slug);
+  const repo = repoLabel(alert, notification.organizationSlug);
   const dependency = dependencyLabel(alert);
   const dashboardUrl = alert.dashboardUrl ?? "";
-  const headerColor = severityColor(alert.severity, payload.type);
+  const headerColor = severityColor(alert.severity, notification.eventType);
 
-  const subject = buildSubject(payload, alert);
-  const importance = graphImportance(payload.type, alert.severity);
+  const subject = buildSubject(notification);
+  const importance = graphImportance(notification.eventType, alert.severity);
 
   const htmlBody = `<!DOCTYPE html>
 <html>
 <body style="font-family: Segoe UI, Arial, sans-serif; color: #111827;">
   <div style="border-left: 6px solid ${headerColor}; padding: 12px 16px; background: #f8fafc; margin-bottom: 16px;">
     <h2 style="margin: 0 0 4px 0;">Socket Security Alert</h2>
-    <p style="margin: 0; color: #475569;">${escapeHtml(payload.type)} · ${escapeHtml(severity)}</p>
+    <p style="margin: 0; color: #475569;">${escapeHtml(notification.eventType)} · ${escapeHtml(severity)}</p>
   </div>
   <table style="border-collapse: collapse; width: 100%; margin-bottom: 16px;" border="1" cellpadding="8">
     <thead style="background: #e2e8f0;">
@@ -158,20 +164,20 @@ export function renderAlertEmail(payload: SocketAlertWebhookPayload, _config: Ap
   }
   <hr />
   <p style="font-size: 12px; color: #64748b;">
-    Event ID: ${escapeHtml(String(eventId))} · ${escapeHtml(payload.timestamp ?? new Date().toISOString())} UTC · Automated message — do not reply
+    Alert ID: ${escapeHtml(String(alert.id ?? "unknown"))} · v${escapeHtml(String(alert.version ?? 0))} · ${escapeHtml(notification.timestamp)} UTC · Automated message — do not reply
   </p>
 </body>
 </html>`;
 
   const textBody = [
-    `Socket Security Alert (${payload.type})`,
+    `Socket Security Alert (${notification.eventType})`,
     `Severity: ${severity}`,
     `Title: ${alert.title ?? "Untitled alert"}`,
     `Repository: ${repo}`,
     `Dependency: ${dependency}`,
     alert.description ? `Description: ${alert.description}` : "",
     dashboardUrl ? `Dashboard: ${dashboardUrl}` : "",
-    `Event ID: ${eventId}`,
+    `Alert ID: ${alert.id ?? "unknown"} (v${alert.version ?? 0})`,
   ]
     .filter(Boolean)
     .join("\n");

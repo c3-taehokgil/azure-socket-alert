@@ -1,32 +1,17 @@
-# Socket.dev webhook test fixtures
+# Socket.dev API alert test fixtures
 
-Dummy payloads modeled on Socket’s webhook documentation (`alert@1` schema, `SOCKET-DUMMY-*` style `eventId` values). Use them for unit tests and local Function POSTs.
+Sample alert objects returned by `GET /orgs/{org_slug}/alerts` (not webhook envelopes). Used for unit tests.
 
-| File | `type` | Purpose |
-|------|--------|---------|
-| `alert-created.json` | `alert:created` | New critical CVE alert |
-| `alert-updated.json` | `alert:updated` | Severity change |
-| `alert-cleared.json` | `alert:cleared` | Resolved alert |
+| Fixture | Status | Version | Use case |
+|---------|--------|---------|----------|
+| `alert-created.json` | `open` | 1 | New alert |
+| `alert-updated.json` | `open` | 5 | Severity change |
+| `alert-cleared.json` | `cleared` | 6 | Resolved alert |
 
-## Unit tests
+Load via `test/helpers/alertTestHelpers.ts`:
 
-```bash
-npm test
+```typescript
+import { loadAlertFixture, fixtureNotification } from "../test/helpers/alertTestHelpers";
 ```
 
-Tests load these files via `test/helpers/webhookTestHelpers.ts` and sign with `TEST_WEBHOOK_SECRET`.
-
-## Local Function (signed POST)
-
-1. Set `SOCKET_WEBHOOK_SECRET` in `local.settings.json` to the test secret (see `webhookTestHelpers.ts` → `TEST_WEBHOOK_SECRET`).
-2. Start the function: `npm start`
-3. Send a fixture:
-
-```bash
-npm run test:fixture -- alert-created
-# optional: BASE_URL=http://localhost:7071 CODE=<function-key>
-```
-
-## Socket.dev dashboard
-
-When Socket sends real webhooks, structure matches these fixtures. You can also capture live payloads from [webhook.site](https://webhook.site) and add new JSON files here.
+To add fixtures from production, export alert JSON from the Socket API or dashboard and strip to the fields used by `SocketAlert` in `types/socketAlert.ts`.

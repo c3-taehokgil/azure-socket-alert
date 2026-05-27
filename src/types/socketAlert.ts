@@ -1,5 +1,7 @@
 export type SocketAlertEventType = "alert:created" | "alert:updated" | "alert:cleared";
 
+export type SocketAlertStatus = "open" | "cleared";
+
 export interface SocketVulnerability {
   cveId?: string;
   cveTitle?: string;
@@ -18,34 +20,31 @@ export interface SocketAlertLocation {
 export interface SocketAlert {
   id?: string;
   key?: string;
-  eventId?: string;
+  version?: number;
   title?: string;
   severity?: string;
   category?: string;
   type?: string;
   description?: string;
-  status?: string;
+  status?: SocketAlertStatus;
   createdAt?: string;
   updatedAt?: string;
-  clearedAt?: string;
+  clearedAt?: string | null;
   dashboardUrl?: string;
   vulnerability?: SocketVulnerability;
   locations?: SocketAlertLocation[];
-  fix?: string;
+  fix?: string | { type?: string; description?: string | null };
 }
 
-export interface SocketOrganization {
-  slug?: string;
-  name?: string;
+export interface SocketAlertsListResponse {
+  items: SocketAlert[];
+  endCursor?: string | null;
 }
 
-export interface SocketAlertWebhookPayload {
-  type: SocketAlertEventType;
-  eventId?: string;
-  schemaType?: string;
-  timestamp?: string;
-  data?: {
-    alert?: SocketAlert;
-    organization?: SocketOrganization;
-  };
+export interface AlertNotification {
+  eventType: SocketAlertEventType;
+  alert: SocketAlert;
+  organizationSlug: string;
+  notificationId: string;
+  timestamp: string;
 }

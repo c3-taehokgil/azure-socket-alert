@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # Uncomment after bootstrapping remote state (see docs/TERRAFORM-D6-GATEWAY.md)
+  # Uncomment after bootstrapping remote state (see infra/terraform/README.md)
   # backend "azurerm" {
   #   resource_group_name  = "rg-terraform-state"
   #   storage_account_name = "stterraformstate<C3_SUFFIX>"

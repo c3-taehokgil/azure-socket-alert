@@ -1,7 +1,7 @@
 {
   "name": "socket-alert-function",
   "version": "1.0.0",
-  "description": "Socket.dev webhook receiver and O365 alert mailer",
+  "description": "Socket.dev alert poller and O365 alert mailer via Graph sendMail",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -10,8 +10,7 @@
     "prestart": "npm run build",
     "start": "func start",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:fixture": "node scripts/post-fixture.mjs"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@azure/data-tables": "^13.3.0",

@@ -49,13 +49,13 @@ resource "azurerm_key_vault" "main" {
   sku_name                   = "standard"
   soft_delete_retention_days = 7
   purge_protection_enabled   = true
-  rbac_authorization_enabled = true
+  rbac_authorization_enabled  = true
   tags                       = var.tags
 }
 
-resource "azurerm_key_vault_secret" "webhook_placeholder" {
-  name         = "socket-webhook-secret"
-  value        = "whsec-REPLACE-AFTER-SOCKET-WEBHOOK-SETUP"
+resource "azurerm_key_vault_secret" "api_token_placeholder" {
+  name         = "socket-api-token"
+  value        = "REPLACE-WITH-SOCKET-ORG-TOKEN-alerts-list"
   key_vault_id = azurerm_key_vault.main.id
 
   lifecycle {
@@ -73,18 +73,18 @@ resource "azurerm_service_plan" "flex" {
 }
 
 resource "azurerm_function_app_flex_consumption" "main" {
-  name                  = local.function_app_name
-  resource_group_name   = var.resource_group_name
-  location              = var.location
-  service_plan_id       = azurerm_service_plan.flex.id
+  name                        = local.function_app_name
+  resource_group_name         = var.resource_group_name
+  location                    = var.location
+  service_plan_id             = azurerm_service_plan.flex.id
   storage_container_type      = "blobContainer"
   storage_container_endpoint  = "${azurerm_storage_account.main.primary_blob_endpoint}${azurerm_storage_container.deployment.name}"
   storage_authentication_type = "StorageAccountConnectionString"
   storage_access_key          = azurerm_storage_account.main.primary_access_key
-  runtime_name                  = "node"
-  runtime_version               = "20"
-  maximum_instance_count        = 40
-  instance_memory_in_mb           = 2048
+  runtime_name                = "node"
+  runtime_version             = "20"
+  maximum_instance_count      = 40
+  instance_memory_in_mb       = 2048
 
   identity {
     type = "SystemAssigned"
@@ -93,57 +93,27 @@ resource "azurerm_function_app_flex_consumption" "main" {
   site_config {
     application_insights_connection_string = azurerm_application_insights.main.connection_string
     application_insights_key               = azurerm_application_insights.main.instrumentation_key
-
-    dynamic "ip_restriction" {
-      for_each = var.allow_azure_front_door ? [1] : []
-      content {
-        name        = "AllowAzureFrontDoor"
-        service_tag = "AzureFrontDoor.Backend"
-        priority    = 100
-        action      = "Allow"
-      }
-    }
-
-    dynamic "ip_restriction" {
-      for_each = var.allowed_ip_cidrs
-      content {
-        name       = "Allow-${replace(ip_restriction.value, "/", "-")}"
-        ip_address = ip_restriction.value
-        priority   = 110 + ip_restriction.key
-        action     = "Allow"
-      }
-    }
-
-    dynamic "ip_restriction" {
-      for_each = var.enable_deny_all_inbound ? [1] : []
-      content {
-        name       = "DenyAllOther"
-        ip_address = "0.0.0.0/0"
-        priority   = 200
-        action     = "Deny"
-      }
-    }
   }
 
-  app_settings = merge({
-    AzureWebJobsStorage                     = azurerm_storage_account.main.primary_connection_string
-    FUNCTIONS_EXTENSION_VERSION             = "~4"
-    WEBSITE_NODE_DEFAULT_VERSION            = "~20"
-    SOCKET_WEBHOOK_SECRET                     = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=socket-webhook-secret)"
-    MAIL_SENDER_UPN                           = var.mail_sender_upn
-    MAIL_TO_ADDRESSES                         = var.mail_to_addresses
-    MIN_SEVERITY                              = var.min_severity
-    INCLUDE_CLEARED                           = "true"
-    IDEMPOTENCY_TABLE_NAME                    = "SocketWebhookEvents"
-    SIGNATURE_MAX_AGE_SECONDS                 = "300"
-    APPLICATIONINSIGHTS_CONNECTION_STRING     = azurerm_application_insights.main.connection_string
-  }, var.socket_org_slug != "" ? { SOCKET_ORG_SLUG = var.socket_org_slug } : {})
+  app_settings = {
+    AzureWebJobsStorage                 = azurerm_storage_account.main.primary_connection_string
+    FUNCTIONS_EXTENSION_VERSION         = "~4"
+    WEBSITE_NODE_DEFAULT_VERSION        = "~20"
+    SOCKET_API_TOKEN                    = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=socket-api-token)"
+    SOCKET_ORG_SLUG                     = var.socket_org_slug
+    MAIL_SENDER_UPN                     = var.mail_sender_upn
+    MAIL_TO_ADDRESSES                   = var.mail_to_addresses
+    MIN_SEVERITY                        = var.min_severity
+    INCLUDE_CLEARED                     = "true"
+    STATE_TABLE_NAME                    = "SocketAlertState"
+    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.main.connection_string
+  }
 
   tags = var.tags
 
   depends_on = [
     azurerm_role_assignment.function_kv_secrets_user,
-    azurerm_key_vault_secret.webhook_placeholder,
+    azurerm_key_vault_secret.api_token_placeholder,
   ]
 }
 
@@ -153,22 +123,8 @@ resource "azurerm_role_assignment" "function_kv_secrets_user" {
   principal_id         = azurerm_function_app_flex_consumption.main.identity[0].principal_id
 }
 
-data "azurerm_function_app_host_keys" "main" {
-  name                = azurerm_function_app_flex_consumption.main.name
-  resource_group_name = var.resource_group_name
-}
-
 output "function_app_name" {
   value = azurerm_function_app_flex_consumption.main.name
-}
-
-output "default_hostname" {
-  value = azurerm_function_app_flex_consumption.main.default_hostname
-}
-
-output "default_host_key" {
-  value     = data.azurerm_function_app_host_keys.main.default_function_key
-  sensitive = true
 }
 
 output "key_vault_name" {
